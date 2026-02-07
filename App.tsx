@@ -178,7 +178,7 @@ const App: React.FC = () => {
 
   if (screen === 'HOME') {
     return (
-      <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 overflow-hidden">
+      <div className="fixed inset-0 w-full flex flex-col items-center justify-center p-4 overflow-hidden">
         <div className="z-10 text-center mb-8 animate-in fade-in slide-in-from-top-12 duration-1000">
           <h1 className="text-6xl md:text-9xl font-black tracking-tighter text-white drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)] font-['Playfair_Display'] italic">
             DAMA <span className="text-cyan-400 not-italic">3D</span>
@@ -209,7 +209,7 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          <button onClick={() => startGame('Online')} className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center gap-3 hover:bg-emerald-500/20 transition-all">
+          <button onClick={() => startGame('Online')} className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center gap-3 hover:bg-emerald-500/20 transition-all active:scale-95">
              <Globe className="text-emerald-400" />
              <span className="text-white font-black tracking-widest uppercase">Sfida Online</span>
           </button>
@@ -223,7 +223,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-screen w-full bg-[#020617] overflow-hidden flex flex-col items-center">
+    <div className="fixed inset-0 w-full bg-[#020617] overflow-hidden flex flex-col items-center touch-none">
       <Board3D 
         gameState={gameState} 
         onPieceClick={handlePieceClick} 
