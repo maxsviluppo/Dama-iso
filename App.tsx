@@ -6,7 +6,7 @@ import { getBestMove } from './services/aiService';
 import { soundService } from './services/soundService';
 import Board3D from './components/Board3D';
 import GameUI from './components/GameUI';
-import { Users, Cpu, Play, ChevronRight } from 'lucide-react';
+import { Users, Cpu, Play, ChevronRight, Globe } from 'lucide-react';
 
 const INITIAL_TIME = 600; // 10 minutes
 const STORAGE_KEY = 'dama3d_save_game';
@@ -49,7 +49,7 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (screen === 'GAME' && !gameState.isGameOver) {
+    if (screen === 'GAME' && !gameState.isGameOver && gameState.mode !== 'Online') {
       const saveData = {
         gameState,
         zoom,
@@ -143,6 +143,8 @@ const App: React.FC = () => {
   const handlePieceClick = useCallback((pos: Position) => {
     if (gameState.isGameOver) return;
     if (gameState.mode === 'PvAI' && gameState.turn === 'BLACK') return;
+    // In Online mode, you can only move your pieces (assume WHITE for simplicity in this demo)
+    if (gameState.mode === 'Online' && gameState.turn === 'BLACK') return;
 
     const piece = gameState.board[pos.row][pos.col];
     if (piece && piece.player === gameState.turn) {
@@ -172,8 +174,13 @@ const App: React.FC = () => {
     setRotation(prev => prev - deltaX * 0.8);
   };
 
-  const startGame = (mode: 'PvP' | 'PvAI') => {
+  const startGame = (mode: 'PvP' | 'PvAI' | 'Online') => {
     soundService.playSelect();
+    if (mode === 'Online') {
+      // Per ora mostriamo un feedback ma avviamo una sessione "simulata"
+      // In futuro qui andrebbe la logica di WebSocket / PeerJS
+      alert("Configurazione Online in corso... Avvio sessione demo multiplayer.");
+    }
     setGameState({
       board: createInitialBoard(),
       turn: 'WHITE',
@@ -220,7 +227,7 @@ const App: React.FC = () => {
           <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[120px]" />
         </div>
 
-        <div className="z-10 text-center mb-12 md:mb-16 animate-in fade-in slide-in-from-top-12 duration-1000">
+        <div className="z-10 text-center mb-8 md:mb-12 animate-in fade-in slide-in-from-top-12 duration-1000">
           <h1 className="text-6xl md:text-9xl font-black tracking-tighter text-white drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)] font-['Playfair_Display'] italic select-none">
             DAMA <span className="text-cyan-400 not-italic">3D</span>
           </h1>
@@ -228,54 +235,66 @@ const App: React.FC = () => {
           <p className="text-slate-400 uppercase tracking-[0.4em] md:tracking-[0.8em] font-extrabold text-[10px] md:text-xs opacity-70">Isometric Grandmaster Edition</p>
         </div>
 
-        <div className="z-10 flex flex-col gap-5 w-full max-w-2xl animate-in fade-in zoom-in duration-1000 delay-300">
+        <div className="z-10 flex flex-col gap-4 w-full max-w-2xl animate-in fade-in zoom-in duration-1000 delay-300">
           {hasSave && (
             <button 
               onClick={resumeGame}
               className="group relative flex items-center justify-between p-1 rounded-3xl bg-cyan-500/10 border border-cyan-400/40 hover:bg-cyan-500/20 transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_40px_rgba(34,211,238,0.15)]"
             >
-              <div className="flex items-center gap-4 p-5">
-                <div className="w-12 h-12 rounded-2xl bg-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.5)]">
-                  <Play className="w-6 h-6 text-slate-950 fill-slate-950 ml-1" />
+              <div className="flex items-center gap-4 p-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                  <Play className="w-5 h-5 md:w-6 md:h-6 text-slate-950 fill-slate-950 ml-1" />
                 </div>
                 <div className="text-left">
                   <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">CONTINUA</h3>
-                  <p className="text-cyan-400/70 text-[10px] font-bold uppercase tracking-widest">Torna alla sfida in corso</p>
+                  <p className="text-cyan-400/70 text-[9px] md:text-[10px] font-bold uppercase tracking-widest">Torna alla sfida in corso</p>
                 </div>
               </div>
-              <ChevronRight className="w-8 h-8 text-cyan-400/50 mr-6 group-hover:translate-x-2 transition-transform" />
+              <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-cyan-400/50 mr-6 group-hover:translate-x-2 transition-transform" />
             </button>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button 
               onClick={() => startGame('PvAI')}
-              className="group relative flex flex-col items-center justify-center p-8 md:p-10 glass-panel rounded-[2.5rem] transition-all hover:border-cyan-400/50 hover:shadow-[0_0_40px_rgba(34,211,238,0.1)] active:scale-95 overflow-hidden"
+              className="group relative flex flex-col items-center justify-center p-6 md:p-8 glass-panel rounded-[2rem] transition-all hover:border-cyan-400/50 hover:shadow-[0_0_40px_rgba(34,211,238,0.1)] active:scale-95 overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center mb-6 group-hover:border-cyan-400 group-hover:shadow-[0_0_25px_rgba(34,211,238,0.4)] transition-all">
-                <Cpu className="w-8 h-8 md:w-10 md:h-10 text-cyan-400 group-hover:rotate-12 transition-transform" />
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center mb-4 group-hover:border-cyan-400 group-hover:shadow-[0_0_25px_rgba(34,211,238,0.4)] transition-all">
+                <Cpu className="w-6 h-6 md:w-8 md:h-8 text-cyan-400 group-hover:rotate-12 transition-transform" />
               </div>
-              <h3 className="text-2xl md:text-3xl font-black text-white mb-1 uppercase tracking-tighter">VS IA</h3>
-              <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-60">Adaptive Gemini Brain</p>
+              <h3 className="text-xl md:text-2xl font-black text-white mb-1 uppercase tracking-tighter">VS IA</h3>
+              <p className="text-slate-400 text-[8px] md:text-[10px] font-bold uppercase tracking-widest opacity-60">Adaptive Brain</p>
             </button>
 
             <button 
               onClick={() => startGame('PvP')}
-              className="group relative flex flex-col items-center justify-center p-8 md:p-10 glass-panel rounded-[2.5rem] transition-all hover:border-purple-400/50 hover:shadow-[0_0_40px_rgba(168,85,247,0.1)] active:scale-95 overflow-hidden"
+              className="group relative flex flex-col items-center justify-center p-6 md:p-8 glass-panel rounded-[2rem] transition-all hover:border-purple-400/50 hover:shadow-[0_0_40px_rgba(168,85,247,0.1)] active:scale-95 overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-purple-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center mb-6 group-hover:border-purple-400 group-hover:shadow-[0_0_25px_rgba(168,85,247,0.4)] transition-all">
-                <Users className="w-8 h-8 md:w-10 md:h-10 text-purple-400 group-hover:-rotate-12 transition-transform" />
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center mb-4 group-hover:border-purple-400 group-hover:shadow-[0_0_25px_rgba(168,85,247,0.4)] transition-all">
+                <Users className="w-6 h-6 md:w-8 md:h-8 text-purple-400 group-hover:-rotate-12 transition-transform" />
               </div>
-              <h3 className="text-2xl md:text-3xl font-black text-white mb-1 uppercase tracking-tighter">VS AMICO</h3>
-              <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-60">Locale Multiplayer</p>
+              <h3 className="text-xl md:text-2xl font-black text-white mb-1 uppercase tracking-tighter">VS AMICO</h3>
+              <p className="text-slate-400 text-[8px] md:text-[10px] font-bold uppercase tracking-widest opacity-60">Multiplayer Locale</p>
             </button>
           </div>
+
+          <button 
+            onClick={() => startGame('Online')}
+            className="group relative flex items-center justify-center p-5 md:p-6 glass-panel rounded-[2rem] border-emerald-500/30 hover:border-emerald-400 hover:shadow-[0_0_40px_rgba(52,211,153,0.15)] transition-all active:scale-95 overflow-hidden gap-4"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Globe className="w-8 h-8 text-emerald-400 group-hover:animate-spin" />
+            <div className="text-left">
+              <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter">SFIDA ONLINE</h3>
+              <p className="text-emerald-400/60 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">Global Matchmaking</p>
+            </div>
+          </button>
         </div>
 
-        <footer className="z-10 mt-12 md:mt-20 text-slate-600 text-[8px] md:text-[10px] font-black tracking-[0.4em] md:tracking-[0.6em] uppercase opacity-50 text-center px-4">
-          Professional Game Engine • Ultra-Low Latency • 3D Isometric View
+        <footer className="z-10 mt-10 md:mt-16 text-slate-600 text-[8px] md:text-[10px] font-black tracking-[0.4em] md:tracking-[0.6em] uppercase opacity-50 text-center px-4">
+          Professional Game Engine • 3D Isometric View
         </footer>
       </div>
     );

@@ -34,6 +34,6 @@ export interface GameState {
   winner: Player | null;
   timers: Record<Player, number>;
   history: Move[];
-  mode: 'PvP' | 'PvAI';
+  mode: 'PvP' | 'PvAI' | 'Online';
   difficulty: number; // 1 to 5
 }
