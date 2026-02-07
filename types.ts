@@ -25,6 +25,27 @@ export interface Move {
   captured?: Position;
 }
 
+export interface CareerLevel {
+  id: number;
+  title: string;
+  difficulty: number; // 1-5
+  requiredStars: number;
+  basePoints: number;
+}
+
+export interface LevelResult {
+  levelId: number;
+  stars: number;
+  score: number;
+  completedAt: number;
+}
+
+export interface UserProgress {
+  totalScore: number;
+  totalStars: number;
+  results: Record<number, LevelResult>;
+}
+
 export interface GameState {
   board: (Piece | null)[][];
   turn: Player;
@@ -34,6 +55,7 @@ export interface GameState {
   winner: Player | null;
   timers: Record<Player, number>;
   history: Move[];
-  mode: 'PvP' | 'PvAI' | 'Online';
-  difficulty: number; // 1 to 5
+  mode: 'PvP' | 'PvAI' | 'Online' | 'Career';
+  difficulty: number;
+  currentLevelId?: number;
 }

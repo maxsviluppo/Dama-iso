@@ -13,6 +13,7 @@ interface Board3DProps {
   onRotateDrag: (deltaX: number) => void;
   isRotating: boolean;
   setIsRotating: (val: boolean) => void;
+  viewMode: '2D' | '3D';
 }
 
 const Board3D: React.FC<Board3DProps> = ({ 
@@ -23,7 +24,8 @@ const Board3D: React.FC<Board3DProps> = ({
   boardRotation,
   onRotateDrag,
   isRotating,
-  setIsRotating
+  setIsRotating,
+  viewMode
 }) => {
   const { board, selectedPiece, validMoves } = gameState;
   const lastX = useRef(0);
@@ -34,6 +36,7 @@ const Board3D: React.FC<Board3DProps> = ({
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (viewMode === '2D') return; // Disable rotation in 2D
     setIsRotating(true);
     lastX.current = e.clientX;
     dragThreshold.current = 0;
@@ -41,7 +44,7 @@ const Board3D: React.FC<Board3DProps> = ({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isRotating) return;
+    if (!isRotating || viewMode === '2D') return;
     const deltaX = e.clientX - lastX.current;
     lastX.current = e.clientX;
     dragThreshold.current += Math.abs(deltaX);
@@ -52,6 +55,12 @@ const Board3D: React.FC<Board3DProps> = ({
     setIsRotating(false);
   };
 
+  // Transform logic
+  const is3D = viewMode === '3D';
+  const rotationX = is3D ? 55 : 0;
+  const rotationZ = is3D ? (-45 + boardRotation) : 0;
+  const perspective = is3D ? "2500px" : "none";
+
   return (
     <div 
       className="perspective-container flex items-center justify-center w-full min-h-screen pt-12 pb-32 overflow-visible select-none touch-none"
@@ -59,26 +68,30 @@ const Board3D: React.FC<Board3DProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      style={{ perspective }}
     >
       <div 
-        className="transition-transform duration-500 ease-out flex items-center justify-center pointer-events-none"
-        style={{ transform: `scale(${zoomScale})`, transformStyle: 'preserve-3d' }}
+        className="transition-transform duration-700 ease-in-out flex items-center justify-center pointer-events-none"
+        style={{ transform: `scale(${zoomScale})`, transformStyle: is3D ? 'preserve-3d' : 'flat' }}
       >
         <div 
-          className={`isometric-board relative grid grid-cols-8 grid-rows-8 bg-slate-900 p-3 rounded-sm shadow-[0_80px_160px_-20px_rgba(0,0,0,0.9)] border-[6px] border-slate-700/60 pointer-events-auto`}
+          className={`relative grid grid-cols-8 grid-rows-8 bg-slate-900 p-3 rounded-sm shadow-[0_40px_100px_rgba(0,0,0,0.6)] border-[6px] border-slate-700/60 pointer-events-auto transition-all duration-700 ease-in-out`}
           style={{ 
-            transform: `rotateX(55deg) rotateZ(${-45 + boardRotation}deg)`, 
-            transformStyle: 'preserve-3d',
-            transition: isRotating ? 'none' : 'transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)'
+            transform: `rotateX(${rotationX}deg) rotateZ(${rotationZ}deg)`, 
+            transformStyle: is3D ? 'preserve-3d' : 'flat',
           }}
         >
-          {/* Strato di illuminazione direzionale */}
-          <div className="board-lighting" />
+          {/* Strato di illuminazione (solo in 3D) */}
+          {is3D && <div className="board-lighting" />}
           
-          {/* Spessore base della scacchiera */}
+          {/* Spessore base (nascosto in 2D) */}
           <div 
-            className="absolute inset-0 bg-slate-800 rounded-sm"
-            style={{ transform: 'translateZ(-20px)' }}
+            className="absolute inset-0 bg-slate-800 rounded-sm transition-opacity duration-500"
+            style={{ 
+              transform: 'translateZ(-20px)', 
+              opacity: is3D ? 1 : 0,
+              display: is3D ? 'block' : 'none'
+            }}
           />
 
           {Array.from({ length: 8 }).map((_, r) =>
@@ -92,10 +105,10 @@ const Board3D: React.FC<Board3DProps> = ({
               return (
                 <div 
                   key={`${r}-${c}`}
-                  style={{ transformStyle: 'preserve-3d' }}
+                  style={{ transformStyle: is3D ? 'preserve-3d' : 'flat' }}
                   className={`
                     relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center transition-all duration-200
-                    ${isDark ? 'bg-slate-600' : 'bg-slate-300'}
+                    ${isDark ? 'bg-slate-800/80' : 'bg-slate-300'}
                     ${move ? 'cursor-pointer active:brightness-125' : ''}
                   `}
                   onClick={(e) => {
@@ -115,14 +128,15 @@ const Board3D: React.FC<Board3DProps> = ({
                         if (dragThreshold.current > 5) return;
                         onPieceClick({ row: r, col: c });
                       }}
-                      boardRotation={boardRotation}
+                      boardRotation={is3D ? boardRotation : 0}
+                      isFlatView={!is3D}
                     />
                   )}
 
                   {move && (
                     <div 
-                      className="absolute inset-0 flex items-center justify-center pointer-events-none z-40"
-                      style={{ transform: 'translateZ(25px)' }}
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 transition-transform duration-500"
+                      style={{ transform: is3D ? 'translateZ(25px)' : 'none' }}
                     >
                       {isJump ? (
                         <div className="relative flex items-center justify-center">
