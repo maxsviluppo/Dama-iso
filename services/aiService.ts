@@ -2,11 +2,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GameState, Move, Player } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = process.env.API_KEY || 'MISSING_KEY';
+const ai = new GoogleGenAI({ apiKey });
 
 export async function getBestMove(state: GameState): Promise<Move | null> {
   const player = state.turn;
-  const boardRepresentation = state.board.map(row => 
+  const boardRepresentation = state.board.map(row =>
     row.map(p => p ? `${p.player.charAt(0)}${p.type === 'KING' ? 'K' : 'N'}` : 'EE')
   );
 
