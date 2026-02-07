@@ -1,0 +1,5 @@
+{
+  "name": "Dama 3D Isometric",
+  "description": "A stylish 3D isometric checkers game featuring local multiplayer with timers and an adaptive AI powered by Gemini 3 Flash.",
+  "requestFramePermissions": []
+}

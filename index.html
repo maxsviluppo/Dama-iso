@@ -1,0 +1,108 @@
+
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Dama 3D Isometric</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg-color: #020617;
+        --accent-cyan: #22d3ee;
+        --accent-purple: #a855f7;
+      }
+      body {
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-color);
+        background-image: 
+          radial-gradient(circle at 50% -20%, #1e293b 0%, transparent 70%),
+          radial-gradient(circle at 0% 100%, rgba(34, 211, 238, 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+        color: #f8fafc;
+        overflow: hidden;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: none;
+        min-height: 100vh;
+      }
+      /* Sottile griglia di fondo */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+        z-index: -1;
+      }
+      .perspective-container {
+        perspective: 2500px;
+        transform-style: preserve-3d;
+      }
+      .isometric-board {
+        transform-style: preserve-3d;
+        transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .board-lighting {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 100%);
+        pointer-events: none;
+        z-index: 5;
+        border-radius: inherit;
+      }
+      .piece-3d {
+        transform-style: preserve-3d;
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      .puck-layer {
+        position: absolute;
+        inset: 0;
+        border-radius: 9999px;
+        backface-visibility: visible;
+        pointer-events: none;
+      }
+      @keyframes king-glow {
+        0%, 100% { filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.4)); }
+        50% { filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.8)); }
+      }
+      .animate-king-glow {
+        animation: king-glow 2s infinite ease-in-out;
+      }
+      .crown-animation {
+        animation: crown-appear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+      @keyframes crown-appear {
+        from { transform: scale(0) translateZ(15px); opacity: 0; }
+        to { transform: scale(1) translateZ(15px); opacity: 1; }
+      }
+      button {
+        touch-action: manipulation;
+      }
+      /* Custom Glass Effect */
+      .glass-panel {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react/": "https://esm.sh/react@^19.2.4/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
