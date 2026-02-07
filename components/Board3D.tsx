@@ -30,24 +30,31 @@ const Board3D: React.FC<Board3DProps> = ({
   const { board, selectedPiece, validMoves } = gameState;
   const lastX = useRef(0);
   const dragThreshold = useRef(0);
+  const is3D = viewMode === '3D';
 
   const getMoveForSquare = (r: number, c: number): Move | undefined => {
     return validMoves.find(m => m.to.row === r && m.to.col === c);
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (viewMode === '2D') return; // Disable rotation in 2D
-    setIsRotating(true);
+    // In 2D non ruotiamo, ma resettiamo il threshold per il click
     lastX.current = e.clientX;
     dragThreshold.current = 0;
+    
+    if (!is3D) return;
+    
+    setIsRotating(true);
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isRotating || viewMode === '2D') return;
     const deltaX = e.clientX - lastX.current;
     lastX.current = e.clientX;
     dragThreshold.current += Math.abs(deltaX);
+
+    if (!isRotating || !is3D) return;
+    
+    // Feedback ultra-rapido e diretto
     onRotateDrag(deltaX);
   };
 
@@ -55,8 +62,6 @@ const Board3D: React.FC<Board3DProps> = ({
     setIsRotating(false);
   };
 
-  // Transform logic
-  const is3D = viewMode === '3D';
   const rotationX = is3D ? 55 : 0;
   const rotationZ = is3D ? (-45 + boardRotation) : 0;
   const perspective = is3D ? "2500px" : "none";
@@ -71,25 +76,28 @@ const Board3D: React.FC<Board3DProps> = ({
       style={{ perspective }}
     >
       <div 
-        className="transition-transform duration-700 ease-in-out flex items-center justify-center pointer-events-none"
-        style={{ transform: `scale(${zoomScale})`, transformStyle: is3D ? 'preserve-3d' : 'flat' }}
+        className="flex items-center justify-center"
+        style={{ 
+          transform: `scale(${zoomScale})`, 
+          transformStyle: is3D ? 'preserve-3d' : 'flat',
+          transition: isRotating ? 'none' : 'transform 0.5s cubic-bezier(0.2, 0, 0.2, 1)'
+        }}
       >
         <div 
-          className={`relative grid grid-cols-8 grid-rows-8 bg-slate-900 p-3 rounded-sm shadow-[0_40px_100px_rgba(0,0,0,0.6)] border-[6px] border-slate-700/60 pointer-events-auto transition-all duration-700 ease-in-out`}
+          className={`relative grid grid-cols-8 grid-rows-8 bg-slate-900 p-3 rounded-sm shadow-[0_40px_100px_rgba(0,0,0,0.6)] border-[6px] border-slate-700/60`}
           style={{ 
             transform: `rotateX(${rotationX}deg) rotateZ(${rotationZ}deg)`, 
             transformStyle: is3D ? 'preserve-3d' : 'flat',
+            transition: isRotating ? 'none' : 'transform 0.5s cubic-bezier(0.2, 0, 0.2, 1)'
           }}
         >
-          {/* Strato di illuminazione (solo in 3D) */}
           {is3D && <div className="board-lighting" />}
           
-          {/* Spessore base (nascosto in 2D) */}
+          {/* Spessore della scacchiera */}
           <div 
-            className="absolute inset-0 bg-slate-800 rounded-sm transition-opacity duration-500"
+            className="absolute inset-0 bg-slate-800 rounded-sm"
             style={{ 
               transform: 'translateZ(-20px)', 
-              opacity: is3D ? 1 : 0,
               display: is3D ? 'block' : 'none'
             }}
           />
@@ -107,17 +115,18 @@ const Board3D: React.FC<Board3DProps> = ({
                   key={`${r}-${c}`}
                   style={{ transformStyle: is3D ? 'preserve-3d' : 'flat' }}
                   className={`
-                    relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center transition-all duration-200
+                    relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center
                     ${isDark ? 'bg-slate-800/80' : 'bg-slate-300'}
-                    ${move ? 'cursor-pointer active:brightness-125' : ''}
+                    ${move ? 'cursor-pointer' : ''}
                   `}
                   onClick={(e) => {
-                    if (dragThreshold.current > 5) return;
+                    // Se abbiamo trascinato vistosamente, ignoriamo il click
+                    if (dragThreshold.current > 10) return;
                     if (isDark) onSquareClick({ row: r, col: c });
                   }}
                 >
                   {move && (
-                    <div className="absolute inset-0 bg-cyan-400/20 border-2 border-cyan-400/40 z-10" />
+                    <div className="absolute inset-0 bg-cyan-400/30 border-2 border-cyan-400/50 z-10" />
                   )}
 
                   {piece && (
@@ -125,7 +134,7 @@ const Board3D: React.FC<Board3DProps> = ({
                       piece={piece} 
                       isSelected={isSelected}
                       onClick={() => {
-                        if (dragThreshold.current > 5) return;
+                        if (dragThreshold.current > 10) return;
                         onPieceClick({ row: r, col: c });
                       }}
                       boardRotation={is3D ? boardRotation : 0}
@@ -135,8 +144,10 @@ const Board3D: React.FC<Board3DProps> = ({
 
                   {move && (
                     <div 
-                      className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 transition-transform duration-500"
-                      style={{ transform: is3D ? 'translateZ(25px)' : 'none' }}
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none z-40"
+                      style={{ 
+                        transform: is3D ? 'translateZ(25px)' : 'none'
+                      }}
                     >
                       {isJump ? (
                         <div className="relative flex items-center justify-center">

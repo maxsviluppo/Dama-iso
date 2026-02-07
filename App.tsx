@@ -230,7 +230,7 @@ const App: React.FC = () => {
         onSquareClick={handleSquareClick} 
         zoomScale={zoom} 
         boardRotation={rotation} 
-        onRotateDrag={(d) => setRotation(r => r - d * 0.8)} 
+        onRotateDrag={(d) => setRotation(r => r - d * 0.7)} // Sensibilità aumentata
         isRotating={isRotating} 
         setIsRotating={setIsRotating} 
         viewMode={viewMode}
