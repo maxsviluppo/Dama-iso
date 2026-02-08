@@ -11,7 +11,9 @@ import Board3D from './components/Board3D';
 import GameUI from './components/GameUI';
 import CareerLobby from './components/CareerLobby';
 import CareerSummary from './components/CareerSummary';
-import { Users, Cpu, Play, ChevronRight, Globe, Trophy, User, AlertCircle, CheckCircle, Shield, Trash2, X } from 'lucide-react';
+import { Users, Cpu, Play, ChevronRight, Globe, Trophy, User, AlertCircle, CheckCircle, Shield, Trash2, X, Send } from 'lucide-react';
+import OnlineLobby from './components/OnlineLobby';
+import { socketService } from './services/socketService';
 
 interface ToastState {
   show: boolean;
@@ -24,7 +26,7 @@ const INITIAL_TIME = 600;
 const STORAGE_KEY = 'dama3d_save_game';
 
 const App: React.FC = () => {
-  const [screen, setScreen] = useState<'HOME' | 'CAREER_LOBBY' | 'GAME'>('HOME');
+  const [screen, setScreen] = useState<'HOME' | 'CAREER_LOBBY' | 'GAME' | 'ONLINE_LOBBY'>('HOME');
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D');
   const [zoom, setZoom] = useState(1.0);
   const [rotation, setRotation] = useState(0);
@@ -46,6 +48,92 @@ const App: React.FC = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // ONLINE STATE
+  const [onlineGameId, setOnlineGameId] = useState<string | null>(null);
+  const [onlineOpponent, setOnlineOpponent] = useState<any>(null);
+  const [onlineColor, setOnlineColor] = useState<'WHITE' | 'BLACK'>('WHITE');
+
+  // Socket Events
+  useEffect(() => {
+    if (!currentUser) return;
+
+    if (!socketService.socket.connected) {
+      socketService.connect(currentUser);
+    }
+
+    const onChallengeReceived = ({ challenger, challengerSocketId }: any) => {
+      showToast(`Sfida da ${challenger.username}!`, 'info', [
+        {
+          label: "Rifiuta", onClick: () => {
+            socketService.rejectChallenge(challengerSocketId, currentUser);
+            setToast(prev => ({ ...prev, show: false }));
+          }, variant: 'secondary'
+        },
+        {
+          label: "Accetta", onClick: () => {
+            socketService.acceptChallenge(challengerSocketId, currentUser);
+            setToast(prev => ({ ...prev, show: false }));
+          }, variant: 'primary'
+        }
+      ]);
+    };
+
+    const onGameStart = ({ opponent, color, gameId }: any) => {
+      setOnlineOpponent(opponent);
+      setOnlineColor(color);
+      setOnlineGameId(gameId);
+
+      setGameState({
+        board: createInitialBoard(),
+        turn: 'WHITE',
+        selectedPiece: null,
+        validMoves: [],
+        isGameOver: false,
+        winner: null,
+        timers: { WHITE: INITIAL_TIME, BLACK: INITIAL_TIME },
+        history: [],
+        mode: 'Online',
+        difficulty: 3
+      });
+      setEarnedStars([]);
+      setScreen('GAME');
+      setShowSummary(false);
+      showToast(`Partita iniziata contro ${opponent.username}! Tu sei ${color === 'WHITE' ? 'BIANCO' : 'NERO'}`, 'success');
+    };
+
+    const onOpponentMove = ({ move }: any) => {
+      // Logic relies on callback state update in App, so straightforward applyMove works
+      if (move.captured) soundService.playCapture();
+      else soundService.playMove();
+      setGameState(prev => applyMove(prev, move));
+    };
+
+    socketService.socket.on('challenge-received', onChallengeReceived);
+    socketService.socket.on('game-start', onGameStart);
+    socketService.socket.on('opponent-move', onOpponentMove);
+
+    return () => {
+      socketService.socket.off('challenge-received', onChallengeReceived);
+      socketService.socket.off('game-start', onGameStart);
+      socketService.socket.off('opponent-move', onOpponentMove);
+    };
+  }, [currentUser]); // Removed gameState dependency to fix "used before declaration" if it was that type of error, but mainly to prevent re-attaching listeners on every move
+
+  const handleShare = async () => {
+    const url = window.location.origin;
+    const text = "Gioca a Dama 3D con me!";
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Dama 3D', text, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        showToast('Link copiato negli appunti!', 'success');
+      }
+    } catch (e) {
+      console.error("Share failed", e);
+    }
+  };
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success', actions?: ToastState['actions']) => {
     setToast({ show: true, message, type, actions });
@@ -233,23 +321,31 @@ const App: React.FC = () => {
 
   const handleExecuteMove = useCallback((move: Move) => {
     const piece = gameState.board[move.from.row][move.from.col];
+
+    if (gameState.mode === 'Online') {
+      if (gameState.turn !== onlineColor) return;
+      socketService.sendMove(onlineGameId!, move, onlineOpponent.socketId);
+    }
+
     const willPromote = piece?.type === PieceType.NORMAL && ((piece.player === 'WHITE' && move.to.row === 0) || (piece.player === 'BLACK' && move.to.row === 7));
     if (willPromote) soundService.playKing();
     else if (move.captured) soundService.playCapture();
     else soundService.playMove();
     setGameState(prev => applyMove(prev, move));
-  }, [gameState.board]);
+  }, [gameState.board, gameState.mode, gameState.turn, onlineColor, onlineGameId, onlineOpponent]);
 
   const handlePieceClick = useCallback((pos: Position) => {
     if (gameState.isGameOver) return;
     if ((gameState.mode === 'PvAI' || gameState.mode === 'Career') && gameState.turn === 'BLACK') return;
+    if (gameState.mode === 'Online' && gameState.turn !== onlineColor) return;
+
     const piece = gameState.board[pos.row][pos.col];
     if (piece && piece.player === gameState.turn) {
       const moves = getValidMoves(gameState.board, pos.row, pos.col);
       if (moves.length > 0) soundService.playSelect();
       setGameState(prev => ({ ...prev, selectedPiece: pos, validMoves: moves }));
     }
-  }, [gameState]);
+  }, [gameState, onlineColor]);
 
   const handleSquareClick = useCallback((pos: Position) => {
     if (gameState.isGameOver) return;
@@ -311,6 +407,19 @@ const App: React.FC = () => {
       action();
     }
   };
+
+  if (screen === 'ONLINE_LOBBY') {
+    return (
+      <OnlineLobby
+        currentUser={currentUser}
+        onChallenge={(targetId) => {
+          socketService.challengePlayer(targetId, currentUser);
+          showToast("Sfida inviata...", 'info');
+        }}
+        onBack={() => setScreen('HOME')}
+      />
+    );
+  }
 
   if (screen === 'HOME') {
     return (
@@ -438,13 +547,19 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* ADMIN SHIELD BUTTON (BOTTOM LEFT) */}
-        <div className="absolute bottom-4 left-4 z-50">
+        {/* ADMIN SHIELD & SHARE BUTTONS (BOTTOM LEFT) */}
+        <div className="absolute bottom-4 left-4 z-50 flex gap-2">
           <button
             onClick={() => setShowAdminModal(true)}
             className="p-3 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 rounded-full transition-all text-slate-500 hover:text-cyan-400 group"
           >
             <Shield size={20} className="group-hover:scale-110 transition-transform" />
+          </button>
+          <button
+            onClick={handleShare}
+            className="p-3 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 hover:border-green-500/50 rounded-full transition-all text-slate-500 hover:text-green-400 group"
+          >
+            <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
           </button>
         </div>
 
@@ -458,12 +573,14 @@ const App: React.FC = () => {
               <User size={16} className={currentUser ? 'text-cyan-400' : 'text-slate-400'} />
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-slate-300">
-                {currentUser ? 'OPERATORE' : 'OSPITE'}
-              </span>
               <span className={`text-xs font-black uppercase tracking-widest ${currentUser ? 'text-cyan-400' : 'text-white'}`}>
-                {userProfile?.username || 'ACCEDI'}
+                {userProfile?.username || 'OSPITE'}
               </span>
+              {currentUser && (
+                <span className="text-[10px] font-bold text-slate-400 group-hover:text-slate-300">
+                  PUNTI: {getProgress().totalStars * 100}
+                </span>
+              )}
             </div>
           </button>
         </div>
@@ -502,7 +619,7 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          <button onClick={() => handleProtectedAction(() => startGame('Online'))} className="relative p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center gap-3 hover:bg-emerald-500/20 transition-all active:scale-95 group">
+          <button onClick={() => handleProtectedAction(() => setScreen('ONLINE_LOBBY'))} className="relative p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center gap-3 hover:bg-emerald-500/20 transition-all active:scale-95 group">
             <Globe className="text-emerald-400" />
             <span className="text-white font-black tracking-widest uppercase">Sfida Online</span>
             {!currentUser && <div className="absolute right-4 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider group-hover:opacity-100 transition-opacity">Login Richiesto</div>}
@@ -536,6 +653,9 @@ const App: React.FC = () => {
             const levels = generateCareerLevels();
             const level = levels.find(l => l.id === gameState.currentLevelId);
             if (level) startCareerLevel(level);
+            if (level) startCareerLevel(level);
+          } else if (gameState.mode === 'Online') {
+            setScreen('ONLINE_LOBBY');
           } else if (gameState.mode !== 'Career') {
             startGame(gameState.mode as 'PvP' | 'PvAI' | 'Online');
           }
