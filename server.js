@@ -190,6 +190,12 @@ app.delete('/api/users/:id', async (req, res) => {
     }
 });
 
-httpServer.listen(port, () => {
-    console.log(`Backend API Server running at http://localhost:${port}`);
-});
+// Export app for Vercel
+export default app;
+
+// Only start the server if running directly (locally)
+if (process.env.NODE_ENV !== 'production' || import.meta.url === `file://${process.argv[1]}`) {
+    httpServer.listen(port, () => {
+        console.log(`Backend API Server running at http://localhost:${port}`);
+    });
+}
