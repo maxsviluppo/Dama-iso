@@ -3,6 +3,7 @@ import React from 'react';
 import { CareerLevel, UserProgress } from '../types';
 import { generateCareerLevels } from '../services/careerService';
 import { ChevronLeft, Star, Lock, Trophy, Flag, ChevronDown } from 'lucide-react';
+import { soundService } from '../services/soundService';
 
 interface CareerLobbyProps {
   onSelect: (level: CareerLevel) => void;
@@ -24,7 +25,10 @@ const CareerLobby: React.FC<CareerLobbyProps> = ({ onSelect, onBack, progress })
       {/* Header fisso */}
       <div className="z-30 w-full bg-slate-950/80 backdrop-blur-xl border-b border-white/5 p-4 md:p-6 flex justify-between items-center shadow-2xl">
         <button
-          onClick={onBack}
+          onClick={() => {
+            soundService.playSelect();
+            onBack();
+          }}
           className="p-3 bg-slate-900 border border-white/10 rounded-2xl text-white hover:bg-white/10 transition-all flex items-center gap-2 active:scale-95"
         >
           <ChevronLeft size={20} />

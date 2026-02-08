@@ -3,6 +3,8 @@ import React from 'react';
 import { GameState, Player } from '../types';
 import { User, Cpu, RotateCcw, Home, ZoomIn, ZoomOut, Trophy, Rotate3d, Hourglass, Globe, Timer, LayoutGrid, Star } from 'lucide-react';
 
+import { soundService } from '../services/soundService';
+
 interface GameUIProps {
   gameState: GameState;
   onReset: () => void;
@@ -98,34 +100,19 @@ const GameUI: React.FC<GameUIProps> = ({
             {(gameState.mode === 'PvAI' || gameState.mode === 'Career') && (
               <div className="flex gap-0.5 -mt-8 z-10 px-4 pt-4 pb-1">
                 {[1, 2, 3].map(starIndex => {
-                  // Calculate potential stars in real-time
-                  // Logic mirrors calculateStars in careerService but simplified for real-time
-                  // Base points + moves penalty + time bonus
-                  // For display purposes, we estimate based on current state
-                  const currentMoves = gameState.history.length;
-                  const currentTime = gameState.timers.WHITE; // Assuming player is WHITE
-
-                  // Thresholds (simplified/approximated from service for visual feedback)
-                  // Star 1: Always active if winning (assumed true during play until proven otherwise or very bad performance)
-                  // Star 2: > 1.5x base points
-                  // Star 3: > 2.5x base points
-
-                  // Dynamic calculation for visual feedback
-                  const basePoints = gameState.currentLevelId ? gameState.currentLevelId * 100 : 500;
-                  const movesBonus = Math.max(0, 500 - currentMoves * 10);
-                  const timeBonus = currentTime * 2;
-                  const estimatedScore = basePoints + movesBonus + timeBonus;
+                  // Calculate capture progress
+                  // Standard checkers has 12 pieces per player
+                  const blackPieces = gameState.board.flat().filter(p => p?.player === 'BLACK').length;
+                  const captured = 12 - blackPieces;
+                  const isWin = gameState.winner === 'WHITE';
 
                   let isActive = false;
-                  // REGOLE STELLE:
-                  // Stella 1: Punteggio base raggiunto (> 50% dei punti base) O almeno 1 cattura importante
-                  // Stella 2: Punteggio buono (> 120% punti base)
-                  // Stella 3: Punteggio eccellente (> 200% punti base)
-
-                  // Per ora usiamo lo score stimato
-                  if (starIndex === 1 && estimatedScore > basePoints * 0.5) isActive = true;
-                  if (starIndex === 2 && estimatedScore > basePoints * 1.2) isActive = true;
-                  if (starIndex === 3 && estimatedScore > basePoints * 2.0) isActive = true;
+                  // Star 1: Nice start (4 captures) or Win
+                  if (starIndex === 1 && (captured >= 4 || isWin)) isActive = true;
+                  // Star 2: Great play (8 captures) or Win
+                  if (starIndex === 2 && (captured >= 8 || isWin)) isActive = true;
+                  // Star 3: Victory or Domination (Win)
+                  if (starIndex === 3 && isWin) isActive = true;
 
                   // Trigger sound if just earned (only if onStarEarned is provided and star not yet earned)
                   if (isActive && !earnedStars.includes(starIndex) && onStarEarned) {
@@ -155,7 +142,7 @@ const GameUI: React.FC<GameUIProps> = ({
         )}
 
         <div className="flex items-center gap-2 bg-slate-950/60 backdrop-blur-xl border border-white/10 p-1.5 rounded-2xl">
-          <button onClick={onReset} className="p-3 hover:bg-white/10 rounded-xl transition-colors text-slate-400 hover:text-white" title="Reset">
+          <button onClick={() => { soundService.playSelect(); onReset(); }} className="p-3 hover:bg-white/10 rounded-xl transition-colors text-slate-400 hover:text-white" title="Reset">
             <RotateCcw size={20} />
           </button>
         </div>

@@ -201,7 +201,10 @@ const App: React.FC = () => {
 
         <div className="z-10 flex flex-col gap-4 w-full max-w-2xl animate-in fade-in zoom-in duration-1000 delay-300">
           <button
-            onClick={() => setScreen('CAREER_LOBBY')}
+            onClick={() => {
+              soundService.playSelect();
+              setScreen('CAREER_LOBBY');
+            }}
             className="group relative flex flex-col md:flex-row items-center justify-center p-4 md:p-6 bg-cyan-500/20 border-2 border-cyan-400 rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(34,211,238,0.2)] overflow-hidden"
           >
             <Trophy className="w-8 h-8 md:w-10 md:h-10 text-cyan-400 mb-2 md:mb-0 md:mr-4 group-hover:rotate-12 transition-transform" />
@@ -268,6 +271,8 @@ const App: React.FC = () => {
         turnToast={turnToast}
         viewMode={viewMode}
         onToggleView={() => setViewMode(v => v === '2D' ? '3D' : '2D')}
+        earnedStars={earnedStars}
+        onStarEarned={handleStarEarned}
       />
       {showSummary && lastResults && (
         <CareerSummary
