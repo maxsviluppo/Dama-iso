@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { GameState, Player } from '../types';
-import { User, Cpu, RotateCcw, Home, ZoomIn, ZoomOut, Trophy, Rotate3d, Hourglass, Globe, Timer, LayoutGrid } from 'lucide-react';
+import { User, Cpu, RotateCcw, Home, ZoomIn, ZoomOut, Trophy, Rotate3d, Hourglass, Globe, Timer, LayoutGrid, Star } from 'lucide-react';
 
 interface GameUIProps {
   gameState: GameState;
@@ -15,20 +15,24 @@ interface GameUIProps {
   turnToast: { show: boolean, player: Player | null };
   viewMode: '2D' | '3D';
   onToggleView: () => void;
+  earnedStars: number[];
+  onStarEarned: (star: number) => void;
 }
 
-const GameUI: React.FC<GameUIProps> = ({ 
-  gameState, 
-  onReset, 
-  onModeToggle, 
-  onDifficultyChange, 
-  onZoomIn, 
-  onZoomOut, 
+const GameUI: React.FC<GameUIProps> = ({
+  gameState,
+  onReset,
+  onModeToggle,
+  onDifficultyChange,
+  onZoomIn,
+  onZoomOut,
   zoomLevel,
   onRotate,
   turnToast,
   viewMode,
-  onToggleView
+  onToggleView,
+  earnedStars = [],
+  onStarEarned
 }) => {
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -49,7 +53,7 @@ const GameUI: React.FC<GameUIProps> = ({
 
   return (
     <div className="fixed inset-0 pointer-events-none z-50 flex flex-col justify-between p-4 md:p-6">
-      
+
       {turnToast.show && (
         <div className="absolute top-28 left-1/2 -translate-x-1/2 px-6 py-2 bg-slate-950/90 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_0_40px_rgba(0,0,0,0.6)] flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
           <div className={`w-2 h-2 rounded-full animate-pulse ${turnToast.player === 'WHITE' ? 'bg-white' : 'bg-cyan-500'}`} />
@@ -68,24 +72,84 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
 
         {!gameState.isGameOver && (
-          <div className={`flex items-center gap-4 px-5 py-2 rounded-full glass-panel border-2 transition-all duration-500 shadow-2xl ${isWhiteTurn ? 'border-white/20' : 'border-cyan-500/40'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${isWhiteTurn ? 'bg-white text-slate-950' : 'bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(34,211,238,0.5)]'}`}>
-              {isAiThinking ? <Hourglass size={16} className="animate-spin" /> : (isWhiteTurn ? <User size={16} strokeWidth={3} /> : getOpponentIcon(16))}
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Turno</span>
-                <span className={`text-xs font-black uppercase tracking-tighter ${isWhiteTurn ? 'text-white' : 'text-cyan-400'}`}>
-                  {isWhiteTurn ? 'Bianco' : 'Nero'}
-                </span>
+          <div className={`flex flex-col items-center gap-2 transition-all duration-500`}>
+            {/* Player Info Panel */}
+            <div className={`flex items-center gap-4 px-5 py-2 rounded-full glass-panel border-2 shadow-2xl ${isWhiteTurn ? 'border-white/20' : 'border-cyan-500/40'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${isWhiteTurn ? 'bg-white text-slate-950' : 'bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(34,211,238,0.5)]'}`}>
+                {isAiThinking ? <Hourglass size={16} className="animate-spin" /> : (isWhiteTurn ? <User size={16} strokeWidth={3} /> : getOpponentIcon(16))}
               </div>
-              <div className="flex items-center gap-1.5">
-                <Timer size={12} className={activeTime < 60 ? 'text-red-500' : 'text-slate-500'} />
-                <span className={`text-sm font-mono font-black tabular-nums tracking-tighter ${activeTime < 60 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-                  {formatTime(activeTime)}
-                </span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Turno</span>
+                  <span className={`text-xs font-black uppercase tracking-tighter ${isWhiteTurn ? 'text-white' : 'text-cyan-400'}`}>
+                    {isWhiteTurn ? 'Bianco' : 'Nero'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Timer size={12} className={activeTime < 60 ? 'text-red-500' : 'text-slate-500'} />
+                  <span className={`text-sm font-mono font-black tabular-nums tracking-tighter ${activeTime < 60 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                    {formatTime(activeTime)}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {/* Live Stars Logic */}
+            {(gameState.mode === 'PvAI' || gameState.mode === 'Career') && (
+              <div className="flex gap-0.5 -mt-8 z-10 px-4 pt-4 pb-1">
+                {[1, 2, 3].map(starIndex => {
+                  // Calculate potential stars in real-time
+                  // Logic mirrors calculateStars in careerService but simplified for real-time
+                  // Base points + moves penalty + time bonus
+                  // For display purposes, we estimate based on current state
+                  const currentMoves = gameState.history.length;
+                  const currentTime = gameState.timers.WHITE; // Assuming player is WHITE
+
+                  // Thresholds (simplified/approximated from service for visual feedback)
+                  // Star 1: Always active if winning (assumed true during play until proven otherwise or very bad performance)
+                  // Star 2: > 1.5x base points
+                  // Star 3: > 2.5x base points
+
+                  // Dynamic calculation for visual feedback
+                  const basePoints = gameState.currentLevelId ? gameState.currentLevelId * 100 : 500;
+                  const movesBonus = Math.max(0, 500 - currentMoves * 10);
+                  const timeBonus = currentTime * 2;
+                  const estimatedScore = basePoints + movesBonus + timeBonus;
+
+                  let isActive = false;
+                  // First star is for winning, potential
+                  if (starIndex === 1) isActive = true;
+                  if (starIndex === 2 && estimatedScore > basePoints * 1.5) isActive = true;
+                  if (starIndex === 3 && estimatedScore > basePoints * 2.5) isActive = true;
+
+                  // Force inactive if not met (redundant but clearer logic)
+                  if (starIndex === 2 && estimatedScore <= basePoints * 1.5) isActive = false;
+                  if (starIndex === 3 && estimatedScore <= basePoints * 2.5) isActive = false;
+
+                  // Trigger sound if just earned (only if onStarEarned is provided and star not yet earned)
+                  if (isActive && !earnedStars.includes(starIndex) && onStarEarned) {
+                    setTimeout(() => onStarEarned(starIndex), 0);
+                  }
+
+                  return (
+                    <div key={starIndex} className="relative flex items-center justify-center w-6 h-8">
+                      <Star
+                        size={isActive ? 20 : 14}
+                        strokeWidth={isActive ? 0 : 2}
+                        fill={isActive ? "currentColor" : "none"}
+                        className={`transition-all duration-700 ${isActive
+                          ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)] animate-pulse scale-125'
+                          : 'text-slate-700 scale-100 opacity-40'
+                          }`}
+                      />
+                      {isActive && (
+                        <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-md animate-ping" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -109,15 +173,15 @@ const GameUI: React.FC<GameUIProps> = ({
       <div className="w-full flex justify-center pointer-events-auto">
         <div className="flex items-center gap-2 p-2 bg-slate-950/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-2xl transition-all">
           <div className="flex bg-slate-900/50 p-1 rounded-full border border-white/5 mr-2">
-            <button 
-              onClick={() => viewMode !== '2D' && onToggleView()} 
+            <button
+              onClick={() => viewMode !== '2D' && onToggleView()}
               className={`p-3 rounded-full transition-all ${viewMode === '2D' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
               title="Visuale 2D"
             >
               <LayoutGrid size={18} />
             </button>
-            <button 
-              onClick={() => viewMode !== '3D' && onToggleView()} 
+            <button
+              onClick={() => viewMode !== '3D' && onToggleView()}
               className={`p-3 rounded-full transition-all ${viewMode === '3D' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
               title="Visuale 3D"
             >
@@ -128,9 +192,9 @@ const GameUI: React.FC<GameUIProps> = ({
           <button onClick={onZoomOut} className="p-3.5 bg-slate-900/60 rounded-full text-slate-400 hover:text-white transition-all">
             <ZoomOut size={20} />
           </button>
-          
-          <button 
-            onClick={onRotate} 
+
+          <button
+            onClick={onRotate}
             disabled={viewMode === '2D'}
             className={`p-4 rounded-full transition-all shadow-xl ${viewMode === '2D' ? 'opacity-30 grayscale cursor-not-allowed' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'}`}
           >

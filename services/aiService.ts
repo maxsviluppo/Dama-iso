@@ -3,9 +3,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GameState, Move, Player } from "../types";
 
 const apiKey = process.env.API_KEY || 'MISSING_KEY';
-const ai = new GoogleGenAI({ apiKey });
+let ai: GoogleGenAI | null = null;
+
+try {
+  ai = new GoogleGenAI({ apiKey });
+} catch (error) {
+  console.warn("AI Service initialization failed (likely invalid key):", error);
+}
 
 export async function getBestMove(state: GameState): Promise<Move | null> {
+  if (!ai) return null;
+
   const player = state.turn;
   const boardRepresentation = state.board.map(row =>
     row.map(p => p ? `${p.player.charAt(0)}${p.type === 'KING' ? 'K' : 'N'}` : 'EE')

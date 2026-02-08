@@ -52,7 +52,7 @@ class SoundService {
   playCapture() {
     this.initContext();
     const now = this.ctx!.currentTime;
-    
+
     // Low thud
     const osc1 = this.ctx!.createOscillator();
     const gain1 = this.createGain(now, 0.3, 0.2);
@@ -60,7 +60,7 @@ class SoundService {
     osc1.frequency.setValueAtTime(150, now);
     osc1.frequency.exponentialRampToValueAtTime(60, now + 0.3);
     osc1.connect(gain1);
-    
+
     // High click
     const osc2 = this.ctx!.createOscillator();
     const gain2 = this.createGain(now, 0.05, 0.1);
@@ -78,7 +78,7 @@ class SoundService {
     this.initContext();
     const now = this.ctx!.currentTime;
     const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-    
+
     frequencies.forEach((freq, i) => {
       const osc = this.ctx!.createOscillator();
       const gain = this.createGain(now + i * 0.05, 0.6, 0.05);
@@ -87,6 +87,23 @@ class SoundService {
       osc.connect(gain);
       osc.start(now + i * 0.05);
       osc.stop(now + i * 0.05 + 0.6);
+    });
+  }
+
+  playStar() {
+    this.initContext();
+    const now = this.ctx!.currentTime;
+    // Magic chime sound
+    const frequencies = [880.00, 1108.73, 1318.51, 1760.00]; // A5, C#6, E6, A6
+
+    frequencies.forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.createGain(now + i * 0.1, 0.4, 0.05); // Longer spacing, softer
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + i * 0.1);
+      osc.connect(gain);
+      osc.start(now + i * 0.1);
+      osc.stop(now + i * 0.1 + 0.8);
     });
   }
 }

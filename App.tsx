@@ -11,7 +11,7 @@ import CareerLobby from './components/CareerLobby';
 import CareerSummary from './components/CareerSummary';
 import { Users, Cpu, Play, ChevronRight, Globe, Trophy } from 'lucide-react';
 
-const INITIAL_TIME = 600; 
+const INITIAL_TIME = 600;
 const STORAGE_KEY = 'dama3d_save_game';
 
 const App: React.FC = () => {
@@ -23,8 +23,19 @@ const App: React.FC = () => {
   const [turnToast, setTurnToast] = useState<{ show: boolean, player: Player | null }>({ show: false, player: null });
   const [hasSave, setHasSave] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  const [lastResults, setLastResults] = useState<{stars: number, score: number} | null>(null);
-  
+  const [lastResults, setLastResults] = useState<{ stars: number, score: number } | null>(null);
+
+  // Track earned stars to play sound
+  const [earnedStars, setEarnedStars] = useState<number[]>([]);
+
+  const handleStarEarned = useCallback((starIndex: number) => {
+    setEarnedStars(prev => {
+      if (prev.includes(starIndex)) return prev;
+      soundService.playStar();
+      return [...prev, starIndex];
+    });
+  }, []);
+
   const [gameState, setGameState] = useState<GameState>({
     board: createInitialBoard(),
     turn: 'WHITE',
@@ -153,6 +164,7 @@ const App: React.FC = () => {
       difficulty: level.difficulty,
       currentLevelId: level.id
     });
+    setEarnedStars([]);
     setScreen('GAME');
     setShowSummary(false);
   };
@@ -171,6 +183,7 @@ const App: React.FC = () => {
       mode,
       difficulty: gameState.difficulty
     });
+    setEarnedStars([]);
     setScreen('GAME');
     setHasSave(false);
     setShowSummary(false);
@@ -187,31 +200,31 @@ const App: React.FC = () => {
         </div>
 
         <div className="z-10 flex flex-col gap-4 w-full max-w-2xl animate-in fade-in zoom-in duration-1000 delay-300">
-          <button 
+          <button
             onClick={() => setScreen('CAREER_LOBBY')}
-            className="group relative flex items-center justify-center p-6 bg-cyan-500/20 border-2 border-cyan-400 rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(34,211,238,0.2)] overflow-hidden"
+            className="group relative flex flex-col md:flex-row items-center justify-center p-4 md:p-6 bg-cyan-500/20 border-2 border-cyan-400 rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(34,211,238,0.2)] overflow-hidden"
           >
-            <Trophy className="w-10 h-10 text-cyan-400 mr-4 group-hover:rotate-12 transition-transform" />
-            <div className="text-left">
-              <h3 className="text-2xl font-black text-white uppercase">MODALITÀ CARRIERA</h3>
-              <p className="text-cyan-400/70 text-[10px] font-bold uppercase tracking-widest">Sblocca 100 sfide epiche</p>
+            <Trophy className="w-8 h-8 md:w-10 md:h-10 text-cyan-400 mb-2 md:mb-0 md:mr-4 group-hover:rotate-12 transition-transform" />
+            <div className="text-center md:text-left">
+              <h3 className="text-lg md:text-2xl font-black text-white uppercase leading-tight">MODALITÀ CARRIERA</h3>
+              <p className="text-cyan-400/70 text-[10px] font-bold uppercase tracking-widest mt-1 md:mt-0">Sblocca 100 sfide epiche</p>
             </div>
           </button>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button onClick={() => startGame('PvAI')} className="group p-6 glass-panel rounded-[2rem] border-slate-700 hover:border-cyan-400/50 transition-all flex flex-col items-center">
               <Cpu className="w-8 h-8 text-cyan-400 mb-2" />
-              <h3 className="text-xl font-black text-white uppercase">VS IA</h3>
+              <h3 className="text-xl font-black text-white uppercase text-center">SFIDA CONTRO AI</h3>
             </button>
             <button onClick={() => startGame('PvP')} className="group p-6 glass-panel rounded-[2rem] border-slate-700 hover:border-purple-400/50 transition-all flex flex-col items-center">
               <Users className="w-8 h-8 text-purple-400 mb-2" />
-              <h3 className="text-xl font-black text-white uppercase">VS AMICO</h3>
+              <h3 className="text-xl font-black text-white uppercase text-center">SFIDA CONTRO UN AMICO</h3>
             </button>
           </div>
 
           <button onClick={() => startGame('Online')} className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center gap-3 hover:bg-emerald-500/20 transition-all active:scale-95">
-             <Globe className="text-emerald-400" />
-             <span className="text-white font-black tracking-widest uppercase">Sfida Online</span>
+            <Globe className="text-emerald-400" />
+            <span className="text-white font-black tracking-widest uppercase">Sfida Online</span>
           </button>
         </div>
       </div>
@@ -224,40 +237,48 @@ const App: React.FC = () => {
 
   return (
     <div className="fixed inset-0 w-full bg-[#020617] overflow-hidden flex flex-col items-center touch-none">
-      <Board3D 
-        gameState={gameState} 
-        onPieceClick={handlePieceClick} 
-        onSquareClick={handleSquareClick} 
-        zoomScale={zoom} 
-        boardRotation={rotation} 
+      <Board3D
+        gameState={gameState}
+        onPieceClick={handlePieceClick}
+        onSquareClick={handleSquareClick}
+        zoomScale={zoom}
+        boardRotation={rotation}
         onRotateDrag={(d) => setRotation(r => r - d * 0.7)} // Sensibilità aumentata
-        isRotating={isRotating} 
-        setIsRotating={setIsRotating} 
+        isRotating={isRotating}
+        setIsRotating={setIsRotating}
         viewMode={viewMode}
       />
-      <GameUI 
-        gameState={gameState} 
-        onReset={() => startGame(gameState.mode)} 
-        onModeToggle={() => setScreen('HOME')} 
-        onDifficultyChange={(v) => setGameState(prev => ({ ...prev, difficulty: v }))} 
-        onZoomIn={() => setZoom(z => Math.min(z + 0.1, 1.5))} 
-        onZoomOut={() => setZoom(z => Math.max(z - 0.1, 0.5))} 
-        zoomLevel={zoom} 
-        onRotate={() => setRotation(r => Math.round(r / 90) * 90 + 90)} 
+      <GameUI
+        gameState={gameState}
+        onReset={() => {
+          if (gameState.mode === 'Career' && gameState.currentLevelId) {
+            const levels = generateCareerLevels();
+            const level = levels.find(l => l.id === gameState.currentLevelId);
+            if (level) startCareerLevel(level);
+          } else if (gameState.mode !== 'Career') {
+            startGame(gameState.mode as 'PvP' | 'PvAI' | 'Online');
+          }
+        }}
+        onModeToggle={() => setScreen('HOME')}
+        onDifficultyChange={(v) => setGameState(prev => ({ ...prev, difficulty: v }))}
+        onZoomIn={() => setZoom(z => Math.min(z + 0.1, 1.5))}
+        onZoomOut={() => setZoom(z => Math.max(z - 0.1, 0.5))}
+        zoomLevel={zoom}
+        onRotate={() => setRotation(r => Math.round(r / 90) * 90 + 90)}
         turnToast={turnToast}
         viewMode={viewMode}
         onToggleView={() => setViewMode(v => v === '2D' ? '3D' : '2D')}
       />
       {showSummary && lastResults && (
-        <CareerSummary 
-          results={lastResults} 
+        <CareerSummary
+          results={lastResults}
           onNext={() => {
             const next = gameState.currentLevelId ? gameState.currentLevelId + 1 : 1;
             const levels = generateCareerLevels();
             const level = levels.find(l => l.id === next);
             if (level) startCareerLevel(level);
             else setScreen('CAREER_LOBBY');
-          }} 
+          }}
           onRetry={() => {
             const levels = generateCareerLevels();
             const level = levels.find(l => l.id === gameState.currentLevelId);

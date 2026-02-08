@@ -12,7 +12,7 @@ interface CareerLobbyProps {
 
 const CareerLobby: React.FC<CareerLobbyProps> = ({ onSelect, onBack, progress }) => {
   const levels = generateCareerLevels();
-  
+
   const isUnlocked = (id: number) => {
     if (id === 1) return true;
     const prev = progress.results[id - 1];
@@ -23,14 +23,14 @@ const CareerLobby: React.FC<CareerLobbyProps> = ({ onSelect, onBack, progress })
     <div className="fixed inset-0 bg-[#020617] flex flex-col animate-in fade-in duration-500 overflow-hidden">
       {/* Header fisso */}
       <div className="z-30 w-full bg-slate-950/80 backdrop-blur-xl border-b border-white/5 p-4 md:p-6 flex justify-between items-center shadow-2xl">
-        <button 
-          onClick={onBack} 
+        <button
+          onClick={onBack}
           className="p-3 bg-slate-900 border border-white/10 rounded-2xl text-white hover:bg-white/10 transition-all flex items-center gap-2 active:scale-95"
         >
           <ChevronLeft size={20} />
           <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">Home</span>
         </button>
-        
+
         <div className="text-center">
           <h2 className="text-xl md:text-2xl font-black text-white tracking-tighter italic">LADDER CARRIERA</h2>
           <p className="text-[9px] text-cyan-500 font-bold tracking-[0.3em] uppercase opacity-80">100 Livelli da Sfidare</p>
@@ -47,20 +47,20 @@ const CareerLobby: React.FC<CareerLobbyProps> = ({ onSelect, onBack, progress })
       {/* Area dei livelli scorrevole */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-6 md:py-10 scroll-smooth overscroll-contain">
         <div className="max-w-xl mx-auto flex flex-col items-center gap-4 pb-32">
-          
+
           {/* Milestone Iniziale */}
           <div className="w-full text-center mb-4 animate-bounce">
-             <div className="w-12 h-12 bg-slate-800 rounded-full mx-auto flex items-center justify-center border-2 border-white/10 mb-2">
-                <Flag size={20} className="text-cyan-400" />
-             </div>
-             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Inizia la tua scalata</p>
-             <ChevronDown size={16} className="mx-auto mt-1 text-slate-600" />
+            <div className="w-12 h-12 bg-slate-800 rounded-full mx-auto flex items-center justify-center border-2 border-white/10 mb-2">
+              <Flag size={20} className="text-cyan-400" />
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Inizia la tua scalata</p>
+            <ChevronDown size={16} className="mx-auto mt-1 text-slate-600" />
           </div>
 
           {levels.map((level) => {
             const unlocked = isUnlocked(level.id);
             const result = progress.results[level.id];
-            
+
             return (
               <React.Fragment key={level.id}>
                 <button
@@ -68,8 +68,8 @@ const CareerLobby: React.FC<CareerLobbyProps> = ({ onSelect, onBack, progress })
                   onClick={() => onSelect(level)}
                   className={`
                     relative w-full group flex items-center gap-4 md:gap-6 p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] border-2 transition-all duration-300 active:scale-95
-                    ${unlocked 
-                      ? 'bg-slate-900/40 border-cyan-500/30 hover:border-cyan-400 hover:bg-slate-900/60 shadow-xl' 
+                    ${unlocked
+                      ? 'bg-slate-900/40 border-cyan-500/30 hover:border-cyan-400 hover:bg-slate-900/60 shadow-xl'
                       : 'bg-slate-950/20 border-slate-800/50 grayscale opacity-60'}
                   `}
                 >
@@ -78,7 +78,7 @@ const CareerLobby: React.FC<CareerLobbyProps> = ({ onSelect, onBack, progress })
                     w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all
                     ${unlocked ? 'bg-cyan-500 text-slate-950 shadow-lg group-hover:rotate-6' : 'bg-slate-800 text-slate-600'}
                   `}>
-                    <span className="text-xl md:text-2xl font-black italic tracking-tighter">#{level.id}</span>
+                    <span className="text-xl md:text-2xl font-black italic tracking-tighter">{level.id}</span>
                   </div>
 
                   <div className="flex-1 text-left">
@@ -87,10 +87,10 @@ const CareerLobby: React.FC<CareerLobbyProps> = ({ onSelect, onBack, progress })
                     </h3>
                     <div className="flex gap-1 mt-1">
                       {[1, 2, 3].map(s => (
-                        <Star 
-                          key={s} 
-                          size={12} 
-                          className={result && result.stars >= s ? 'text-amber-500 fill-amber-500' : 'text-slate-800'} 
+                        <Star
+                          key={s}
+                          size={12}
+                          className={result && result.stars >= s ? 'text-amber-500 fill-amber-500' : 'text-slate-800'}
                         />
                       ))}
                     </div>
@@ -109,26 +109,26 @@ const CareerLobby: React.FC<CareerLobbyProps> = ({ onSelect, onBack, progress })
 
                   {/* Connector visivo del percorso */}
                   {level.id < 100 && (
-                     <div className={`absolute -bottom-6 left-10 md:left-12 w-0.5 h-6 transition-colors duration-500 ${unlocked ? 'bg-cyan-500/30' : 'bg-slate-800'}`} />
+                    <div className={`absolute -bottom-6 left-10 md:left-12 w-0.5 h-6 transition-colors duration-500 ${unlocked ? 'bg-cyan-500/30' : 'bg-slate-800'}`} />
                   )}
                 </button>
-                
+
                 {/* Milestone visuale ogni 10 livelli */}
                 {level.id % 10 === 0 && level.id < 100 && (
-                   <div className="py-4 text-cyan-500/40 font-black text-[9px] tracking-[0.5em] uppercase text-center w-full">
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1 h-px bg-white/5" />
-                        Traguardo {level.id}
-                        <div className="flex-1 h-px bg-white/5" />
-                      </div>
-                   </div>
+                  <div className="py-4 text-cyan-500/40 font-black text-[9px] tracking-[0.5em] uppercase text-center w-full">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1 h-px bg-white/5" />
+                      Traguardo {level.id}
+                      <div className="flex-1 h-px bg-white/5" />
+                    </div>
+                  </div>
                 )}
               </React.Fragment>
             );
           })}
         </div>
       </div>
-      
+
       {/* Footer sfumato per indicare scroll */}
       <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#020617] to-transparent pointer-events-none z-10" />
     </div>
