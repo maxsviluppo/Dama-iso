@@ -26,8 +26,8 @@ export function getValidMoves(board: (Piece | null)[][], row: number, col: numbe
   if (!piece) return [];
 
   const moves: Move[] = [];
-  const directions = piece.type === PieceType.KING 
-    ? [[-1, -1], [-1, 1], [1, -1], [1, 1]] 
+  const directions = piece.type === PieceType.KING
+    ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
     : (piece.player === 'WHITE' ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]]);
 
   // Basic moves and jumps
@@ -43,7 +43,10 @@ export function getValidMoves(board: (Piece | null)[][], row: number, col: numbe
         const jr = nr + dr;
         const jc = nc + dc;
         if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 && !board[jr][jc]) {
-          // Special rule for Italian Dama: pieces cannot jump kings (simplified here for standard)
+          // Special rule for Italian Dama: pieces cannot jump kings
+          if (piece.type === PieceType.NORMAL && board[nr][nc]?.type === PieceType.KING) {
+            continue;
+          }
           moves.push({ from: { row, col }, to: { row: jr, col: jc }, captured: { row: nr, col: nc } });
         }
       }
@@ -64,7 +67,7 @@ export function getAllValidMoves(board: (Piece | null)[][], player: Player): Mov
       }
     }
   }
-  
+
   // Mandatory jump rule globally
   const jumps = allMoves.filter(m => !!m.captured);
   return jumps.length > 0 ? jumps : allMoves;
@@ -73,10 +76,10 @@ export function getAllValidMoves(board: (Piece | null)[][], player: Player): Mov
 export function applyMove(state: GameState, move: Move): GameState {
   const newBoard = state.board.map(row => [...row]);
   const piece = { ...newBoard[move.from.row][move.from.col]! };
-  
+
   piece.row = move.to.row;
   piece.col = move.to.col;
-  
+
   // King promotion
   if (piece.player === 'WHITE' && piece.row === 0) piece.type = PieceType.KING;
   if (piece.player === 'BLACK' && piece.row === 7) piece.type = PieceType.KING;
