@@ -117,14 +117,15 @@ const GameUI: React.FC<GameUIProps> = ({
                   const estimatedScore = basePoints + movesBonus + timeBonus;
 
                   let isActive = false;
-                  // First star is for winning, potential
-                  if (starIndex === 1) isActive = true;
-                  if (starIndex === 2 && estimatedScore > basePoints * 1.5) isActive = true;
-                  if (starIndex === 3 && estimatedScore > basePoints * 2.5) isActive = true;
+                  // REGOLE STELLE:
+                  // Stella 1: Punteggio base raggiunto (> 50% dei punti base) O almeno 1 cattura importante
+                  // Stella 2: Punteggio buono (> 120% punti base)
+                  // Stella 3: Punteggio eccellente (> 200% punti base)
 
-                  // Force inactive if not met (redundant but clearer logic)
-                  if (starIndex === 2 && estimatedScore <= basePoints * 1.5) isActive = false;
-                  if (starIndex === 3 && estimatedScore <= basePoints * 2.5) isActive = false;
+                  // Per ora usiamo lo score stimato
+                  if (starIndex === 1 && estimatedScore > basePoints * 0.5) isActive = true;
+                  if (starIndex === 2 && estimatedScore > basePoints * 1.2) isActive = true;
+                  if (starIndex === 3 && estimatedScore > basePoints * 2.0) isActive = true;
 
                   // Trigger sound if just earned (only if onStarEarned is provided and star not yet earned)
                   if (isActive && !earnedStars.includes(starIndex) && onStarEarned) {
