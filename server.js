@@ -3,16 +3,72 @@ import pg from 'pg';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
 const { hash, compare } = bcrypt;
 
 dotenv.config();
 
 const { Pool } = pg;
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: "http://localhost:3002",
+        methods: ["GET", "POST"]
+    }
+});
+
 const port = 3001; // API Server on 3001 (Frontend on 3002)
 
 app.use(cors());
 app.use(express.json());
+
+// Socket.IO Logic
+let connectedUsers = {}; // { socketId: { userId, username } }
+
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+
+    socket.on('register-user', (user) => {
+        connectedUsers[socket.id] = user;
+        io.emit('online-users', Object.values(connectedUsers));
+    });
+
+    socket.on('challenge-request', ({ targetSocketId, challenger }) => {
+        io.to(targetSocketId).emit('challenge-received', { challenger, challengerSocketId: socket.id });
+    });
+
+    socket.on('challenge-response', ({ accepted, challengerSocketId, acceptor }) => {
+        if (accepted) {
+            // Start Game for both
+            const gameId = `${challengerSocketId}-${socket.id}`;
+            const gameData = { gameId, players: { white: challengerSocketId, black: socket.id } }; // Challenger is White
+
+            io.to(challengerSocketId).emit('game-start', { opponent: acceptor, color: 'WHITE', gameId });
+            io.to(socket.id).emit('game-start', { opponent: connectedUsers[challengerSocketId], color: 'BLACK', gameId });
+        } else {
+            io.to(challengerSocketId).emit('challenge-rejected', { acceptor });
+        }
+    });
+
+    socket.on('make-move', ({ gameId, move, targetSocketId }) => {
+        io.to(targetSocketId).emit('opponent-move', { move });
+    });
+
+    socket.on('game-over', ({ gameId, winner, loser }) => {
+        // Here you would typically save the result to DB
+        console.log(`Game Over: ${winner} beat ${loser}`);
+    });
+
+    socket.on('disconnect', () => {
+        delete connectedUsers[socket.id];
+        io.emit('online-users', Object.values(connectedUsers));
+        console.log('User disconnected:', socket.id);
+    });
+});
+
 
 // Connection using the Neon URL from .env
 const pool = new Pool({
@@ -133,6 +189,6 @@ app.delete('/api/users/:id', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
     console.log(`Backend API Server running at http://localhost:${port}`);
 });
