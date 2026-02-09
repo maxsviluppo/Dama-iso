@@ -15,11 +15,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: [
-            "http://localhost:3002",
-            "https://dama-oimfigf37-castromassimo-4092s-projects.vercel.app",
-            "https://dama-iso.vercel.app" // In case you have a custom or shorter domain later
-        ],
+        origin: "*", // Permissivo per debug locale
         methods: ["GET", "POST"]
     }
 });
