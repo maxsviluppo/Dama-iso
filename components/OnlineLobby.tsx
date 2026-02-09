@@ -23,7 +23,7 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ currentUser, onChallenge, onB
     useEffect(() => {
         // Connect socket on mount
         if (currentUser) {
-            socketService.connect({ ...currentUser, socketId: socketService.socket.id });
+            socketService.connect(currentUser);
         }
 
         const onConnect = () => setConnected(true);
