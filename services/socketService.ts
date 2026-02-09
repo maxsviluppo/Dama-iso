@@ -1,11 +1,12 @@
 
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':3001' : ''}` : 'http://localhost:3001');
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : 'http://localhost:3001');
 
 const socket = io(SOCKET_URL, {
     autoConnect: false,
-    transports: ['websocket', 'polling'] // Allow fallback for serverless environments
+    path: SOCKET_URL.includes('localhost') ? '/socket.io' : '/api/socket',
+    transports: ['websocket', 'polling']
 });
 
 export const connectSocket = (user: any) => {

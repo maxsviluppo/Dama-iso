@@ -21,32 +21,39 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ currentUser, onChallenge, onB
     const [connected, setConnected] = useState(false);
 
     useEffect(() => {
-        // Connect socket on mount
-        if (currentUser) {
-            socketService.connect(currentUser);
-        }
+        if (!currentUser) return;
 
-        const onConnect = () => setConnected(true);
-        const onDisconnect = () => setConnected(false);
+        console.log("OnlineLobby: Setup socket per", currentUser.username);
+
+        const onConnect = () => {
+            console.log("OnlineLobby: Connesso!");
+            setConnected(true);
+        };
+        const onDisconnect = () => {
+            console.log("OnlineLobby: Disconnesso");
+            setConnected(false);
+        };
         const onUsersList = (list: any[]) => {
-            // Filter out self and dedicated duplicates if any
-            const others = list.filter(u => u.username !== currentUser.username);
-            setUsers(others);
+            setUsers(list.filter(u => u.username !== currentUser.username));
         };
 
         socketService.socket.on('connect', onConnect);
         socketService.socket.on('disconnect', onDisconnect);
         socketService.socket.on('online-users', onUsersList);
 
-        // Initial connect check
-        if (socketService.socket.connected) onConnect();
+        if (socketService.socket.connected) {
+            setConnected(true);
+            socketService.socket.emit('register-user', currentUser);
+        } else {
+            socketService.connect(currentUser);
+        }
 
         return () => {
             socketService.socket.off('connect', onConnect);
             socketService.socket.off('disconnect', onDisconnect);
             socketService.socket.off('online-users', onUsersList);
         };
-    }, [currentUser]);
+    }, [currentUser?.id]); // Solo quando cambia l'utente
 
     return (
         <div className="fixed inset-0 w-full h-full bg-[#0f172a] text-white flex flex-col p-4 md:p-10 overflow-hidden">
